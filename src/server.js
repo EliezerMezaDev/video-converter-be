@@ -68,6 +68,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
-  console.log(`[Server] 🚀 Running on http://localhost:${PORT}`);
+  console.log(`[Server] 🚀 Running`);
   console.log(`[Server] 📡 Socket.io accepting connections from: ${process.env.FRONTEND_URL || '*'}`);
 });
