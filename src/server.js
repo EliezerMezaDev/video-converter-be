@@ -6,6 +6,9 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Registry: socketId -> Set of output filenames pending cleanup
+const fileRegistry = new Map();
+
 const convertRoutes = require('./routes/convert.routes');
 
 const app = express();
@@ -22,8 +25,30 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log(`[Socket] ✅ Client connected     | id=${socket.id} | origin=${socket.handshake.headers.origin || 'unknown'}`);
 
+  // Initialize an empty file set for this socket
+  fileRegistry.set(socket.id, new Set());
+
   socket.on('disconnect', (reason) => {
     console.log(`[Socket] ❌ Client disconnected  | id=${socket.id} | reason=${reason}`);
+
+    // Delete any converted files that were never downloaded
+    const pendingFiles = fileRegistry.get(socket.id);
+    if (pendingFiles && pendingFiles.size > 0) {
+      console.log(`[Cleanup] 🧹 Socket gone — purging ${pendingFiles.size} unconverted file(s) for id=${socket.id}`);
+      for (const filename of pendingFiles) {
+        const filePath = path.join(processedDir, filename);
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`[Cleanup] 🗑️  Deleted on disconnect: ${filename}`);
+          }
+        } catch (err) {
+          console.error(`[Cleanup] ❌ Error deleting ${filename}:`, err.message);
+        }
+      }
+    }
+
+    fileRegistry.delete(socket.id);
   });
 });
 
@@ -34,9 +59,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// Pass io instance to request
+// Pass io instance and file registry to every request
 app.use((req, res, next) => {
   req.io = io;
+  req.fileRegistry = fileRegistry;
   next();
 });
 

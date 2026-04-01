@@ -10,9 +10,10 @@ ffmpeg.setFfmpegPath(ffmpegPath);
  * @param {Object} file Multer file object
  * @param {string} socketId Target socket ID
  * @param {Object} io Socket.io instance
- * @returns {Promise} Resolves with processed info
+ * @param {Map} fileRegistry Global registry of socketId -> Set<filename>
+ * @returns {Promise} Resolves with processed filename
  */
-const processFile = (file, socketId, io) => {
+const processFile = (file, socketId, io, fileRegistry) => {
   return new Promise((resolve, reject) => {
     const filenameWithoutExt = path.parse(file.filename).name;
     const outputFilename = `${filenameWithoutExt}.mp4`;
@@ -42,6 +43,11 @@ const processFile = (file, socketId, io) => {
       })
       .on('end', () => {
         console.log(`[Converter] ✅ Done      | ${file.originalname} → ${outputFilename}`);
+
+        // Register the output file so disconnect cleanup can find it if never downloaded
+        if (fileRegistry && fileRegistry.has(socketId)) {
+          fileRegistry.get(socketId).add(outputFilename);
+        }
 
         // Remove raw file
         try {
@@ -89,15 +95,16 @@ const processFile = (file, socketId, io) => {
  * @param {Array} files Array of Multer file objects
  * @param {string} socketId Target socket ID
  * @param {Object} io Socket.io instance
+ * @param {Map} fileRegistry Global registry of socketId -> Set<filename>
  */
-const processBatch = async (files, socketId, io) => {
+const processBatch = async (files, socketId, io, fileRegistry) => {
   const results = [];
   console.log(`[Batch] 🗂️  Starting batch | ${files.length} file(s) | socketId=${socketId}`);
   
   for (const [i, file] of files.entries()) {
     console.log(`[Batch] 📄 File ${i + 1}/${files.length}: ${file.originalname}`);
     try {
-      const result = await processFile(file, socketId, io);
+      const result = await processFile(file, socketId, io, fileRegistry);
       const status = result ? 'success' : 'error';
       results.push({ name: file.originalname, status });
       console.log(`[Batch] ${status === 'success' ? '✅' : '❌'} File ${i + 1}/${files.length} ${status}: ${file.originalname}`);

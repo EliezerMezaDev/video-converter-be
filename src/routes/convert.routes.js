@@ -30,7 +30,7 @@ router.post('/upload', upload.array('videos'), (req, res) => {
   });
 
   // Start background processing
-  processBatch(files, socketId, req.io).catch(err => {
+  processBatch(files, socketId, req.io, req.fileRegistry).catch(err => {
     console.error('[Upload] ❌ Unexpected batch error:', err);
   });
 });
@@ -49,15 +49,26 @@ router.get('/download/:filename', (req, res) => {
 
   res.download(filePath, filename, (err) => {
     if (err) {
+      // Do NOT delete on error — the file stays available for retry.
+      // It will be cleaned up when the socket disconnects.
       console.error(`[Download] ❌ Error sending file ${filename}:`, err.message);
-    } else {
-      console.log(`[Download] ✅ File delivered: ${filename}`);
+      return;
     }
-    // Delete the processed file after it is downloaded or if there's an error
+
+    // Only delete after a confirmed successful transfer
+    console.log(`[Download] ✅ File delivered: ${filename}`);
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
         console.log(`[Download] 🗑️  Cleanup: deleted ${filename} from processed/`);
+      }
+
+      // Remove from registry so the disconnect cleanup doesn’t re-attempt deletion
+      const registry = req.fileRegistry;
+      if (registry) {
+        for (const files of registry.values()) {
+          files.delete(filename);
+        }
       }
     } catch (cleanupErr) {
       console.error(`[Download] ❌ Cleanup error for ${filename}:`, cleanupErr.message);
