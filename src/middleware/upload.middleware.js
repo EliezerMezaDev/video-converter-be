@@ -1,8 +1,10 @@
 const multer = require('multer');
 const path = require('path');
-require('dotenv').config();
+const features = require('../config/features');
 
-const maxSize = (process.env.MAX_FILE_SIZE_MB || 100) * 1024 * 1024;
+const maxSizeMB = features.feats.converter.fileMaxSize;
+const maxSize = maxSizeMB * 1024 * 1024;
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

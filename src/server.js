@@ -96,4 +96,5 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`[Server] 🚀 Running`);
   console.log(`[Server] 📡 Socket.io accepting connections from: ${process.env.FRONTEND_URL || '*'}`);
+  console.log(`[Server] ⚙️  Features: ${JSON.stringify(require('./config/features'))}`);
 });
