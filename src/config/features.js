@@ -1,15 +1,46 @@
 const DEFAULT_FEATURES = {
   feats: {
     converter: {
-      fileMaxSize: 500, // MB
+      fileMaxSize: 500,     // MB
+    },
+    musicSearch: {
+      cacheTTL:        600, // seconds — how long search results are cached
+      requestTimeout: 5000, // ms     — upstream Pixabay request timeout
+    },
+  },
+  keys: {
+    jamendo: {
+      clientId: '',
     },
   },
 };
 
 /**
- * Parses FEATURES_SETTINGS env var and deep-merges it with defaults.
- * Expected format (JSON string):
- *   {"feats":{"converter":{"fileMaxSize":500}}}
+ * Recursively merges `source` into `target`, preferring source values.
+ * Does not mutate either argument.
+ */
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source ?? {})) {
+    if (
+      source[key] !== null &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
+      result[key] = deepMerge(target[key] ?? {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+/**
+ * Parses FEATURES_SETTINGS from the environment and deep-merges it with
+ * the defaults above so missing keys never throw at runtime.
+ *
+ * Expected format (single-line JSON string in .env):
+ *   FEATURES_SETTINGS={"feats":{"converter":{"fileMaxSize":500},"musicSearch":{"cacheTTL":600,"requestTimeout":5000}},"keys":{"pixabay":{"apiKey":"YOUR_KEY"}}}
  */
 function parseFeatures() {
   const raw = process.env.FEATURES_SETTINGS;
@@ -20,17 +51,8 @@ function parseFeatures() {
   }
 
   try {
-    const parsed = JSON.parse(raw);
-
-    const features = {
-      feats: {
-        converter: {
-          ...DEFAULT_FEATURES.feats.converter,
-          ...(parsed?.feats?.converter ?? {}),
-        },
-      },
-    };
-
+    const parsed   = JSON.parse(raw);
+    const features = deepMerge(DEFAULT_FEATURES, parsed);
     console.log('[Config] ✅ FEATURES_SETTINGS loaded:', JSON.stringify(features));
     return features;
   } catch (err) {
