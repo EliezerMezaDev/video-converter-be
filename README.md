@@ -36,7 +36,7 @@ src/
 │   │   ├── video-format-converter.controller.js
 │   │   └── video-format-converter.service.js
 │   └── music-search/
-│       ├── lib/pixabay.lib.js                 # Wrapper de la API Pixabay
+│       ├── lib/jamendo.lib.js                 # Wrapper de la API Jamendo
 │       ├── music-search.model.js              # Schemas Zod
 │       ├── music-search.route.js
 │       ├── music-search.controller.js
@@ -105,7 +105,7 @@ Sirve el archivo MP4 convertido. Lo elimina del disco solo si la transferencia e
       "tags": ["calm", "relaxing"],
       "user": "artist_name",
       "previewUrl": "https://api.example.com/api/v1/music/preview/12345",
-      "downloadUrl": "https://pixabay.com/music/download/..."
+      "downloadUrl": "https://jamendo.com/music/download/..."
     }
   ]
 }
@@ -113,10 +113,10 @@ Sirve el archivo MP4 convertido. Lo elimina del disco solo si la transferencia e
 
 #### `GET /api/v1/music/preview/:id`
 
-Proxy/túnel del stream de audio hacia el cliente. No expone credenciales ni URLs de Pixabay.
+Proxy/túnel del stream de audio hacia el cliente. No expone credenciales ni URLs de Jamendo.
 
 - Soporta caché de URL de preview (10 min por defecto)
-- Fallback: consulta Pixabay por ID si no está en caché
+- Fallback: consulta Jamendo por ID si no está en caché
 - Memoria baja: usa `res.pipe()`, sin buffering del archivo completo
 
 ---
@@ -145,8 +145,8 @@ Variable de entorno con un JSON que centraliza toda la configuración:
     }
   },
   "keys": {
-    "pixabay": {
-      "apiKey": "TU_API_KEY_AQUI"
+    "jamendo": {
+      "clientId": "ASD-123"
     }
   }
 }
@@ -154,7 +154,7 @@ Variable de entorno con un JSON que centraliza toda la configuración:
 
 En el `.env` debe ser una línea:
 ```
-FEATURES_SETTINGS={"feats":{"converter":{"fileMaxSize":500},"musicSearch":{"cacheTTL":600,"requestTimeout":5000}},"keys":{"pixabay":{"apiKey":"TU_KEY"}}}
+FEATURES_SETTINGS={"feats":{"converter":{"fileMaxSize":500},"musicSearch":{"cacheTTL":600,"requestTimeout":5000}},"keys":{"jamendo":{"clientId":"TU_KEY"}}}
 ```
 
 ---
@@ -177,4 +177,4 @@ npm run dev     # nodemon — desarrollo
 npm run start   # producción
 ```
 
-> Obtén tu API key de Pixabay en: https://pixabay.com/api/docs/
+> Obtén tu API key de Jamendo en: https://devportal.jamendo.com/apis/v3_0/oauth_client

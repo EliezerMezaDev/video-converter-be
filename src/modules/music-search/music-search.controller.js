@@ -21,7 +21,7 @@ const handleApiError = (err, res, context) => {
 /**
  * GET /api/v1/music/search
  *
- * Validates query params via Zod, proxies the Pixabay search,
+ * Validates query params via Zod, proxies the Jamendo search,
  * and returns a normalized JSON response.
  */
 const search = async (req, res) => {
@@ -46,7 +46,7 @@ const search = async (req, res) => {
 /**
  * GET /api/v1/music/preview/:id
  *
- * Resolves the Pixabay CDN preview URL for the given track ID,
+ * Resolves the Jamendo CDN preview URL for the given track ID,
  * then tunnels the audio stream to the client without buffering
  * the entire file in memory.
  */

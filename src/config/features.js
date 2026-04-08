@@ -4,13 +4,20 @@ const DEFAULT_FEATURES = {
       fileMaxSize: 500,     // MB
     },
     musicSearch: {
-      cacheTTL:        600, // seconds — how long search results are cached
-      requestTimeout: 5000, // ms     — upstream Pixabay request timeout
+      cacheTTL: 600, // seconds — how long search results are cached
+      requestTimeout: 5000, // ms     — upstream Jamendo request timeout
+    },
+    pixabaySearch: {
+      cacheTTL: 600, // seconds — how long Pixabay search results are cached
+      requestTimeout: 8000, // ms     — upstream Pixabay request timeout
     },
   },
   keys: {
     jamendo: {
       clientId: '',
+    },
+    pixabay: {
+      apiKey: '',
     },
   },
 };
@@ -40,7 +47,7 @@ function deepMerge(target, source) {
  * the defaults above so missing keys never throw at runtime.
  *
  * Expected format (single-line JSON string in .env):
- *   FEATURES_SETTINGS={"feats":{"converter":{"fileMaxSize":500},"musicSearch":{"cacheTTL":600,"requestTimeout":5000}},"keys":{"pixabay":{"apiKey":"YOUR_KEY"}}}
+ *   FEATURES_SETTINGS={"feats":{"converter":{"fileMaxSize":500},"musicSearch":{"cacheTTL":600,"requestTimeout":5000}},"keys":{"jamendo":{"clientId":"YOUR_KEY"}}}
  */
 function parseFeatures() {
   const raw = process.env.FEATURES_SETTINGS;
@@ -51,7 +58,7 @@ function parseFeatures() {
   }
 
   try {
-    const parsed   = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
     const features = deepMerge(DEFAULT_FEATURES, parsed);
     console.log('[Config] ✅ FEATURES_SETTINGS loaded:', JSON.stringify(features));
     return features;
