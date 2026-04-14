@@ -10,7 +10,7 @@ require('dotenv').config();
 const videoFormatConverterRoute = require('./modules/video-format-converter/video-format-converter.route');
 const { PROCESSED_DIR } = require('./modules/video-format-converter/video-format-converter.service');
 const musicSearchRoute = require('./modules/music-search/music-search.route');
-const pixabaySearchRoute = require('./modules/pixabay-search/pixabay-search.route');
+const pexelsSearchRoute = require('./modules/pexels-search/pexels-search.route');
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 const app = express();
@@ -69,7 +69,7 @@ app.use((req, res, next) => {
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/convert', videoFormatConverterRoute);
 app.use('/api/v1/music', musicSearchRoute);
-app.use('/api/v1/pixabay', pixabaySearchRoute);
+app.use('/api/v1/pexels', pexelsSearchRoute);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

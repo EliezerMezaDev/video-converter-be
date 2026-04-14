@@ -7,16 +7,16 @@ const DEFAULT_FEATURES = {
       cacheTTL: 600, // seconds — how long search results are cached
       requestTimeout: 5000, // ms     — upstream Jamendo request timeout
     },
-    pixabaySearch: {
-      cacheTTL: 600, // seconds — how long Pixabay search results are cached
-      requestTimeout: 8000, // ms     — upstream Pixabay request timeout
+    pexelsSearch: {
+      cacheTTL: 600, // seconds — how long Pexels search results are cached
+      requestTimeout: 8000, // ms     — upstream Pexels request timeout
     },
   },
   keys: {
     jamendo: {
       clientId: '',
     },
-    pixabay: {
+    pexels: {
       apiKey: '',
     },
   },
