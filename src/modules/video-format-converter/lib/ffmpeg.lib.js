@@ -3,18 +3,31 @@ const ffmpegPath = require('ffmpeg-static');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
+const FORMAT_PRESETS = {
+  mp4:  ['-c:v libx264', '-c:a aac', '-movflags +faststart'],
+  mkv:  ['-c:v libx264', '-c:a aac'],
+  webm: ['-c:v libvpx-vp9', '-c:a libopus'],
+  avi:  ['-c:v libx264', '-c:a mp3'],
+  mov:  ['-c:v libx264', '-c:a aac'],
+  flv:  ['-c:v libx264', '-c:a aac'],
+};
+
+const DEFAULT_OPTIONS = ['-c copy'];
+
 /**
- * Converts an input file to MP4 using stream copy (no re-encode).
- * This preserves quality and is extremely fast since no transcoding occurs.
+ * Converts an input video file to the specified output format.
  *
- * @param {string} inputPath  - Absolute path to the source file
- * @param {string} outputPath - Absolute path to write the output MP4
- * @returns {Promise<void>}   - Resolves on success, rejects on ffmpeg error
+ * @param {string} inputPath    - Absolute path to the source file
+ * @param {string} outputPath   - Absolute path to write the output file
+ * @param {string} outputFormat - Target container format (e.g. 'mp4', 'mkv')
+ * @returns {Promise<void>}     - Resolves on success, rejects on ffmpeg error
  */
-const convertToMp4 = (inputPath, outputPath) =>
+const convertVideo = (inputPath, outputPath, outputFormat) =>
   new Promise((resolve, reject) => {
+    const options = FORMAT_PRESETS[outputFormat] ?? DEFAULT_OPTIONS;
+
     ffmpeg(inputPath)
-      .outputOptions(['-c:v copy', '-c:a copy'])
+      .outputOptions(options)
       .save(outputPath)
       .on('start', (cmd) => {
         console.log(`[FFmpeg] 🔧 Started | cmd: ${cmd}`);
@@ -28,4 +41,4 @@ const convertToMp4 = (inputPath, outputPath) =>
       .on('error', reject);
   });
 
-module.exports = { convertToMp4 };
+module.exports = { convertVideo };

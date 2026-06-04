@@ -1,6 +1,6 @@
 # video-converter-be
 
-Backend REST API + WebSocket para **Web-Utils** — una plataforma de utilidades web.
+Backend REST API + WebSocket para **Web-Utils** — una plataforma de herramientas web.
 
 ---
 

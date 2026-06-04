@@ -1,28 +1,28 @@
 const path = require('path');
 const fs = require('fs');
-const { convertToMp4 } = require('./lib/ffmpeg.lib');
+const { convertVideo } = require('./lib/ffmpeg.lib');
 const { safeDelete } = require('./util/file-cleanup.util');
 
 const PROCESSED_DIR = path.join(__dirname, 'uploads/processed');
 
-// Ensure processed directory exists on module load
 if (!fs.existsSync(PROCESSED_DIR)) {
   fs.mkdirSync(PROCESSED_DIR, { recursive: true });
 }
 
 /**
- * Converts a single uploaded file to MP4, emitting Socket.io events
+ * Converts a single uploaded file to the target format, emitting Socket.io events
  * for progress, success, and error.
  *
- * @param {Object} file        - Multer file object
- * @param {string} socketId    - Target socket ID
- * @param {Object} io          - Socket.io server instance
+ * @param {Object} file         - Multer file object
+ * @param {string} socketId     - Target socket ID
+ * @param {Object} io           - Socket.io server instance
  * @param {Map}    fileRegistry - Global registry: socketId → Set<filename>
+ * @param {string} targetFormat - Output container format (e.g. 'mp4', 'mkv')
  * @returns {Promise<string|null>} - Output filename on success, null on error
  */
-const processFile = async (file, socketId, io, fileRegistry) => {
+const processFile = async (file, socketId, io, fileRegistry, targetFormat) => {
   const nameWithoutExt = path.parse(file.filename).name;
-  const outputFilename = `${nameWithoutExt}.mp4`;
+  const outputFilename = `${nameWithoutExt}.${targetFormat}`;
   const outputPath = path.join(PROCESSED_DIR, outputFilename);
 
   console.log(`[Converter] ▶️  Starting  | ${file.originalname} → ${outputFilename} | socketId=${socketId}`);
@@ -33,11 +33,10 @@ const processFile = async (file, socketId, io, fileRegistry) => {
   });
 
   try {
-    await convertToMp4(file.path, outputPath);
+    await convertVideo(file.path, outputPath, targetFormat);
 
     console.log(`[Converter] ✅ Done      | ${file.originalname} → ${outputFilename}`);
 
-    // Register for socket-disconnect cleanup
     if (fileRegistry?.has(socketId)) {
       fileRegistry.get(socketId).add(outputFilename);
     }
@@ -72,15 +71,16 @@ const processFile = async (file, socketId, io, fileRegistry) => {
  * @param {string} socketId     - Target socket ID
  * @param {Object} io           - Socket.io server instance
  * @param {Map}    fileRegistry - Global registry: socketId → Set<filename>
+ * @param {string} targetFormat - Output container format for all files in the batch
  */
-const processBatch = async (files, socketId, io, fileRegistry) => {
-  console.log(`[Batch] 🗂️  Starting batch | ${files.length} file(s) | socketId=${socketId}`);
+const processBatch = async (files, socketId, io, fileRegistry, targetFormat) => {
+  console.log(`[Batch] 🗂️  Starting batch | ${files.length} file(s) | format=${targetFormat} | socketId=${socketId}`);
 
   const results = [];
 
   for (const [i, file] of files.entries()) {
     console.log(`[Batch] 📄 File ${i + 1}/${files.length}: ${file.originalname}`);
-    const result = await processFile(file, socketId, io, fileRegistry);
+    const result = await processFile(file, socketId, io, fileRegistry, targetFormat);
     const status = result ? 'success' : 'error';
     results.push({ name: file.originalname, status });
     console.log(`[Batch] ${status === 'success' ? '✅' : '❌'} ${i + 1}/${files.length} ${status}: ${file.originalname}`);

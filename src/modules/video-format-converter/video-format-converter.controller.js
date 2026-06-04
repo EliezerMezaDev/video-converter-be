@@ -3,14 +3,19 @@ const fs = require('fs');
 const { processBatch, PROCESSED_DIR } = require('./video-format-converter.service');
 const { safeDelete } = require('./util/file-cleanup.util');
 
+const ALLOWED_OUTPUT_FORMATS = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv'];
+
 /**
  * POST /api/convert/upload
  *
- * Accepts the batch of .mov files, responds immediately with 202,
+ * Accepts a batch of video files, responds immediately with 202,
  * then starts async conversion in the background.
  */
 const upload = (req, res) => {
   const { socketId } = req.body;
+  const targetFormat = ALLOWED_OUTPUT_FORMATS.includes(req.body.targetFormat)
+    ? req.body.targetFormat
+    : 'mp4';
   const files = req.files;
 
   if (!socketId) {
@@ -24,11 +29,11 @@ const upload = (req, res) => {
   }
 
   const fileNames = files.map((f) => f.originalname).join(', ');
-  console.log(`[Upload] 📥 Batch received | socketId=${socketId} | count=${files.length} | files=[${fileNames}]`);
+  console.log(`[Upload] 📥 Batch received | socketId=${socketId} | format=${targetFormat} | count=${files.length} | files=[${fileNames}]`);
 
   res.status(202).json({ message: 'Files accepted for processing', count: files.length });
 
-  processBatch(files, socketId, req.io, req.fileRegistry).catch((err) => {
+  processBatch(files, socketId, req.io, req.fileRegistry, targetFormat).catch((err) => {
     console.error('[Upload] ❌ Unexpected batch error:', err);
   });
 };
@@ -36,10 +41,9 @@ const upload = (req, res) => {
 /**
  * GET /api/convert/download/:filename
  *
- * 
- * Serves the converted MP4 file. Deletes it from disk only after a
- * confirmed successful transfer. On error, the file is preserved so
- * the client can retry; it will be purged when the socket disconnects.
+ * Serves the converted file. Deletes it from disk only after a confirmed
+ * successful transfer. On error, the file is preserved so the client can retry;
+ * it will be purged when the socket disconnects.
  */
 const download = (req, res) => {
   const { filename } = req.params;
@@ -54,7 +58,6 @@ const download = (req, res) => {
 
   res.download(filePath, filename, (err) => {
     if (err) {
-      // Do NOT delete on error — preserved for retry; cleaned up on socket disconnect.
       console.error(`[Download] ❌ Error sending file ${filename}:`, err.message);
       return;
     }
@@ -63,7 +66,6 @@ const download = (req, res) => {
 
     safeDelete(filePath, 'processed after download');
 
-    // Remove from registry so disconnect cleanup doesn't re-attempt deletion
     const registry = req.fileRegistry;
     if (registry) {
       for (const files of registry.values()) {
