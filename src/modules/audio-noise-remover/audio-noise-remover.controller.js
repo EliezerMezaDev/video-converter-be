@@ -12,7 +12,7 @@ const upload = (req, res) => {
     return res.status(400).json({ error: message });
   }
 
-  const { socketId, strength } = parsed.data;
+  const { socketId } = parsed.data;
   const files = req.files;
 
   if (!files || files.length === 0) {
@@ -21,11 +21,11 @@ const upload = (req, res) => {
   }
 
   const fileNames = files.map((f) => f.originalname).join(', ');
-  console.log(`[AudioUpload] 📥 Batch received | socketId=${socketId} | strength=${strength} | count=${files.length} | files=[${fileNames}]`);
+  console.log(`[AudioUpload] 📥 Batch received | socketId=${socketId} | count=${files.length} | files=[${fileNames}]`);
 
   res.status(202).json({ message: 'Archivos aceptados para procesamiento', count: files.length });
 
-  processBatch(files, strength, socketId, req.io, req.audioFileRegistry).catch((err) => {
+  processBatch(files, socketId, req.io, req.audioFileRegistry).catch((err) => {
     console.error('[AudioUpload] ❌ Unexpected batch error:', err);
   });
 };

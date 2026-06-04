@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { removeNoise } = require('./lib/ffmpeg-audio.lib');
+const { uploadFile, submitJob, pollUntilDone, downloadResult } = require('./lib/audo-ai.lib');
 
 const PROCESSED_DIR = path.join(__dirname, 'uploads/processed');
 
@@ -16,22 +16,28 @@ const safeDelete = (filePath) => {
   }
 };
 
-const processFile = async (file, strength, socketId, io, audioFileRegistry) => {
+const processFile = async (file, socketId, io, audioFileRegistry) => {
   const ext = path.extname(file.originalname).toLowerCase();
   const nameWithoutExt = path.parse(file.filename).name;
   const outputFilename = `${nameWithoutExt}${ext}`;
   const outputPath = path.join(PROCESSED_DIR, outputFilename);
 
-  console.log(`[AudioDenoiser] ▶️  Starting  | ${file.originalname} | strength=${strength} | socketId=${socketId}`);
+  console.log(`[AudioDenoiser] ▶️  Starting  | ${file.originalname} | socketId=${socketId}`);
 
-  io.to(socketId).emit('audio:progress', {
-    file: file.originalname,
-    status: 'processing',
-  });
+  io.to(socketId).emit('audio:progress', { file: file.originalname, status: 'processing' });
 
   try {
-    await removeNoise(file.path, outputPath, strength);
+    const inputPath = await uploadFile(file.path);
+    console.log(`[AudioDenoiser] ☁️  Uploaded  | ${file.originalname} → ${inputPath}`);
 
+    const jobId = await submitJob(inputPath);
+    console.log(`[AudioDenoiser] 🔧 Submitted | jobId=${jobId}`);
+
+    const audoOutputPath = await pollUntilDone(jobId, (attempt) => {
+      io.to(socketId).emit('audio:progress', { file: file.originalname, status: 'processing', attempt });
+    });
+
+    await downloadResult(audoOutputPath, outputPath);
     console.log(`[AudioDenoiser] ✅ Done      | ${file.originalname} → ${outputFilename}`);
 
     if (audioFileRegistry?.has(socketId)) {
@@ -60,14 +66,14 @@ const processFile = async (file, strength, socketId, io, audioFileRegistry) => {
   }
 };
 
-const processBatch = async (files, strength, socketId, io, audioFileRegistry) => {
-  console.log(`[AudioBatch] 🗂️  Starting batch | ${files.length} file(s) | strength=${strength} | socketId=${socketId}`);
+const processBatch = async (files, socketId, io, audioFileRegistry) => {
+  console.log(`[AudioBatch] 🗂️  Starting batch | ${files.length} file(s) | socketId=${socketId}`);
 
   const results = [];
 
   for (const [i, file] of files.entries()) {
     console.log(`[AudioBatch] 📄 File ${i + 1}/${files.length}: ${file.originalname}`);
-    const result = await processFile(file, strength, socketId, io, audioFileRegistry);
+    const result = await processFile(file, socketId, io, audioFileRegistry);
     const status = result ? 'success' : 'error';
     results.push({ name: file.originalname, status });
     console.log(`[AudioBatch] ${status === 'success' ? '✅' : '❌'} ${i + 1}/${files.length} ${status}: ${file.originalname}`);
