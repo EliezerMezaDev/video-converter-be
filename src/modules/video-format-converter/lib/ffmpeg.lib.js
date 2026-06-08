@@ -3,16 +3,14 @@ const ffmpegPath = require('ffmpeg-static');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
+// Stream-copy preserves the original codecs and only rewraps the container.
+// Transcoding (libx264, libvpx-vp9, etc.) is too CPU/RAM-intensive for
+// constrained environments (e.g. Render free tier 512 MB) and causes the
+// ffmpeg process to be OOM-killed before the `end` event fires.
+// mp4 gets faststart so browsers can seek before full download.
 const FORMAT_PRESETS = {
-  mp4:  ['-c:v libx264', '-c:a aac', '-movflags +faststart'],
-  mkv:  ['-c:v libx264', '-c:a aac'],
-  webm: ['-c:v libvpx-vp9', '-c:a libopus'],
-  avi:  ['-c:v libx264', '-c:a mp3'],
-  mov:  ['-c:v libx264', '-c:a aac'],
-  flv:  ['-c:v libx264', '-c:a aac'],
+  mp4: ['-c copy', '-movflags +faststart'],
 };
-
-const DEFAULT_OPTIONS = ['-c copy'];
 
 /**
  * Converts an input video file to the specified output format.
@@ -24,7 +22,7 @@ const DEFAULT_OPTIONS = ['-c copy'];
  */
 const convertVideo = (inputPath, outputPath, outputFormat) =>
   new Promise((resolve, reject) => {
-    const options = FORMAT_PRESETS[outputFormat] ?? DEFAULT_OPTIONS;
+    const options = FORMAT_PRESETS[outputFormat] ?? ['-c copy'];
 
     ffmpeg(inputPath)
       .outputOptions(options)
