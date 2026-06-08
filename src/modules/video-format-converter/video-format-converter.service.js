@@ -27,8 +27,8 @@ const processFile = async (file, socketId, io, fileRegistry, targetFormat) => {
 
   console.log(`[Converter] ▶️  Starting  | ${file.originalname} → ${outputFilename} | socketId=${socketId}`);
 
-  io.to(socketId).emit('conversion:progress', {
-    file: file.originalname,
+  io.to(socketId).emit('conversion:start', {
+    originalName: file.originalname,
     status: 'processing',
   });
 
@@ -54,7 +54,7 @@ const processFile = async (file, socketId, io, fileRegistry, targetFormat) => {
     console.error(`[Converter] ❌ Failed    | ${file.originalname} | ${err.message}`);
 
     io.to(socketId).emit('conversion:error', {
-      file: file.originalname,
+      originalName: file.originalname,
       error: err.message || 'Conversion failed',
     });
 
